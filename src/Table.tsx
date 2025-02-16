@@ -1,15 +1,25 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { fullTable } from "./App";
 import { headersRu } from "./headersRu";
 import { getTable } from "./database";
 
 type TableProps = {
-    table: fullTable
+    table: fullTable;
+    tableState: any;
+    saveTableState: (tableName: string, newState: any) => void;
 }
 
-export const Table: React.FC<TableProps> = ({ table }) => {
+export const Table: React.FC<TableProps> = ({ table, tableState, saveTableState }) => {
     const [isLoading, setIsLoading] = useState(false);
-    const [source, setSource] = useState(table.source);
+    const [source, setSource] = useState<any[]>(tableState?.source || table.source);
+
+    useEffect(() => {
+        return () => {
+            if (tableState?.source !== source) {
+                saveTableState(table.name, { ...tableState, source });
+            }
+        };
+    }, [source, tableState, saveTableState, table.name]);
 
     async function RefreshTable() {
         setIsLoading(true);

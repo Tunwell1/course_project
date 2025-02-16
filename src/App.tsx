@@ -18,6 +18,7 @@ function App() {
   const [currentTable, setCurrentTable] = useState('applications');
   const [isLoading, setIsLoading] = useState(true);
   const [tables, setTables] = useState<fullTable[]>([]);
+  const [tableStates, setTableStates] = useState<{ [key: string]: any }>({});
 
   useEffect(() => {
     async function getAndSetTables() {
@@ -31,11 +32,18 @@ function App() {
       setIsLoading(false);
     }
     getAndSetTables();
-  },[]);
+  }, []);
 
 
   function ChangeCurrentTable(name: string) {
     setCurrentTable(name);
+  }
+
+  function saveTableState(tableName: string, newState: any) {
+    setTableStates((prevState) => ({
+      ...prevState,
+      [tableName]: newState
+    }));
   }
 
   return (
@@ -69,7 +77,12 @@ function App() {
         ) : (
           names.map((x, i) => (
             x == currentTable && (
-              <Table key={i} table={tables[i]} />
+              <Table
+                key={i}
+                table={tables[i]}
+                tableState={tableStates[x]}
+                saveTableState={saveTableState}
+              />
             )
           ))
         )}
