@@ -2,66 +2,76 @@ import './CSS/App.css';
 import './CSS/table.css';
 import './CSS/panelChoosing.css';
 import './CSS/tableSpace.css';
-import { Table } from './Table';
 import { useEffect, useState } from 'react';
-import { getTable } from './database';
+import { GroupTables } from './GroupTables';
+import { getTable, getColumnNames } from './database';
+import { Table } from './Table';
 
-export type tabl = {
+export const names = ['applications', 'categories', 'categoriesInLicenses', 'exams', 'journalIssues', 'licenses', 'medicCert', 'owners', 'revocations', 'suspensions']
+export type fullTable = {
   name: string;
+  headersEn: string[];
   source: any[];
 };
 
 function App() {
-  const [currentTable, setCurrentTable] = useState('storage');
+  const [currentTable, setCurrentTable] = useState('applications');
   const [isLoading, setIsLoading] = useState(true);
-  const [tables, setTables] = useState<tabl[]>();
+  const [tables, setTables] = useState<fullTable[]>([]);
 
   useEffect(() => {
     async function getAndSetTables() {
-      let storage = await getTable('storage') as [];
-      let staff = await getTable('staff') as [];
-      setTables([{ name: 'storage', source: storage }, { name: 'staff', source: staff}]);
+      const promises = names.map(async (x) => {
+        let content = await getTable(x);
+        let headersEn = await getColumnNames(x);
+        return { name: x, headersEn: headersEn || [], source: content || [] };
+      });
+      const tablesM = await Promise.all(promises);
+      setTables(tablesM);
       setIsLoading(false);
     }
     getAndSetTables();
-  }, [])
+  },[]);
 
-  function ChangeCurrentTable(name: string){
+
+  function ChangeCurrentTable(name: string) {
     setCurrentTable(name);
   }
 
   return (
     <div>
       <div className='panel-for-choosing'>
-        <button onClick={() => ChangeCurrentTable('storage')}>
-          Таблица склада
-        </button>
-        <button onClick={() => ChangeCurrentTable('staff')}>
-          Таблица сотрудников
-        </button>
+        <GroupTables
+          names={['Владельцы', 'Категории']}
+          namesEn={['owners', 'categories']}
+          changeNameMethod={ChangeCurrentTable}
+        />
+        <GroupTables
+          names={['Заявки', 'Экзамены']}
+          namesEn={['applications', 'exams']}
+          changeNameMethod={ChangeCurrentTable}
+        />
+        <GroupTables
+          names={[
+            'Водительские удостоверения',
+            'Медицинские справки',
+            'Категории в водительских удостоверениях',
+            'История выдачи водительских удостоверений',
+            'История аннуляции водительских удостоверений',
+            'История приостановки водительских удостоверений'
+          ]}
+          namesEn={['licenses', 'medicCert', 'categoriesInLicenses', 'journalIssues', 'revocations', 'suspensions']}
+          changeNameMethod={ChangeCurrentTable} />
       </div>
       <div className='table-space'>
         {isLoading ? (
           <p>Загрузка данных...</p>
         ) : (
-          <>
-            <Table
-              source={tables?.find(x => x.name == currentTable)?.source || []}
-              nameTable={currentTable}
-              headers={['ID', 'ID категории', 'Имя', 'Описание', 'Ед изм', 'Количество']}
-              headersEn={['id', 'id_category', 'name', 'description', 'unit_measurment', 'count']}
-              widthCols={[0, 20, 20, 50, 10, 10]}
-              types={['number', 'number', 'text', 'text', 'text', 'number']}
-            />
-            <Table
-              source={tables?.find(x => x.name == currentTable)?.source || []}
-              nameTable={currentTable}
-              headers={['ID', 'Имя', 'Фамилия', 'Отчество', 'Должность']}
-              headersEn={['id', 'name', 'surname', 'father_name', 'post']}
-              widthCols={[20, 100, 100, 100, 100]}
-              types={['number', 'text', 'text', 'text', 'text']}
-            />
-          </>
+          names.map((x, i) => (
+            x == currentTable && (
+              <Table key={i} table={tables[i]} />
+            )
+          ))
         )}
       </div>
     </div>

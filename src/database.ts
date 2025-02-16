@@ -1,7 +1,23 @@
 import { createClient } from "@supabase/supabase-js";
-import { databaseUrl, API_key } from "./db_keys";
 
-export const supabase = createClient(databaseUrl, API_key);
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+export async function getColumnNames(tableName: string): Promise<string[] | null> {
+    try {
+        const { data, error } = await supabase.rpc('get_column_names', {
+            target_table_name: tableName,
+        });
+        if (error) {
+            throw error;
+        }
+        return data;
+    } catch (error) {
+        console.error('Ошибка при получении названий столбцов:', error);
+        return null;
+    }
+}
 
 export async function getTable(nameTable: string) {
     const { data, error } = await supabase.from(nameTable).select("*");
