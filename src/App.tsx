@@ -25,7 +25,7 @@ function App() {
       const promises = names.map(async (x) => {
         let content = await getTable(x);
         let headersEn = await getColumnNames(x);
-        return { name: x, headersEn: headersEn || [], source: content || [] };
+        return { name: x, headersEn: headersEn || [], source: content || [], newRowValues: {} };
       });
       const tablesM = await Promise.all(promises);
       setTables(tablesM);

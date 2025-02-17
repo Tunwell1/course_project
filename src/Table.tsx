@@ -12,15 +12,15 @@ type TableProps = {
 export const Table: React.FC<TableProps> = ({ table, tableState, saveTableState }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [source, setSource] = useState<any[]>(tableState?.source || table.source);
-    const [newRowValues, setNewRowValues] = useState<{ [key: string]: string }>({});
+    const [newRowValues, setNewRowValues] = useState<{ [key: string]: any }>(tableState?.newRowValues || {});
 
     useEffect(() => {
         return () => {
-            if (tableState?.source !== source) {
-                saveTableState(table.name, { ...tableState, source });
+            if (tableState?.source !== source || tableState?.newRowValues !== newRowValues) {
+                saveTableState(table.name, { ...tableState, source, newRowValues });
             }
         };
-    }, [source, tableState, saveTableState, table.name]);
+    }, [table.name, source, newRowValues]);
 
     async function RefreshTable() {
         setIsLoading(true);
@@ -36,7 +36,6 @@ export const Table: React.FC<TableProps> = ({ table, tableState, saveTableState 
             }
             return acc;
         }, {} as { [key: string]: string });
-
         await addRecord(table.name, row);
         const newSource = [...source, row];
         setSource(newSource);
