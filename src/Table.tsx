@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { fullTable } from "./App";
 import { headersRu } from "./headersRu";
-import { getTable } from "./database";
+import { addRecord, getTable } from "./database";
 
 type TableProps = {
     table: fullTable;
@@ -12,6 +12,7 @@ type TableProps = {
 export const Table: React.FC<TableProps> = ({ table, tableState, saveTableState }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [source, setSource] = useState<any[]>(tableState?.source || table.source);
+    const [newRowValues, setNewRowValues] = useState<{ [key: string]: string }>({});
 
     useEffect(() => {
         return () => {
@@ -29,9 +30,25 @@ export const Table: React.FC<TableProps> = ({ table, tableState, saveTableState 
     }
 
     async function addNewRow() {
-        const newSource = [...source, {}];
+        const row = table.headersEn.reduce((acc, header, index) => {
+            if (index !== 0) {
+                acc[header] = newRowValues[header] || "";
+            }
+            return acc;
+        }, {} as { [key: string]: string });
+
+        await addRecord(table.name, row);
+        const newSource = [...source, row];
         setSource(newSource);
+        setNewRowValues({});
     }
+
+    const handleInputChange = (header: string, value: string) => {
+        setNewRowValues(prevValues => ({
+            ...prevValues,
+            [header]: value
+        }));
+    };
 
     return (
         <div className="space-table">
@@ -80,7 +97,11 @@ export const Table: React.FC<TableProps> = ({ table, tableState, saveTableState 
                             {table.headersEn.map((x, i) => i != 0 && (
                                 <td key={i}>
                                     <div className="inTD">
-                                        <input type="text" />
+                                        <input
+                                            type="text"
+                                            value={newRowValues[x] || ""}
+                                            onChange={e => handleInputChange(x, e.target.value)}
+                                        />
                                     </div>
                                 </td>
                             ))}

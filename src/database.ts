@@ -29,12 +29,11 @@ export async function getTable(nameTable: string) {
 }
 
 export async function addRecord(nameTable: string, row: any) {
-    const { data, error } = await supabase.from(nameTable).insert(row).select('id');
+    const { error } = await supabase.from(nameTable).insert(row).select('id');
     if (error) {
         console.error('Ошибка при добавлении данных в таблицу ' + nameTable + ": " + error);
         return null;
     }
-    else return data;
 }
 
 export async function saveRecord(nameTable: string, row: any) {
