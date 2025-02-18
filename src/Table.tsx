@@ -1,56 +1,37 @@
 import { useState, useEffect } from "react";
-import { fullTable } from "./App";
 import { headersRu } from "./headersRu";
 import { addRecord, getTable } from "./database";
+import { EditingRows, NewRowValues, TableProps } from "./types";
 
-type TableProps = {
-    table: fullTable;
-    tableState: any;
-    saveTableState: (tableName: string, newState: any) => void;
-}
-
-export const Table: React.FC<TableProps> = ({ table, tableState, saveTableState }) => {
+export const Table: React.FC<TableProps> = ({ tableState, saveTableState }) => {
     const [isLoading, setIsLoading] = useState(false);
-    const [source, setSource] = useState<any[]>(tableState?.source || table.source);
-    const [newRowValues, setNewRowValues] = useState<{ [key: string]: any }>(tableState?.newRowValues || {});
-
-    useEffect(() => {
-        if (tableState?.newRowValues) {
-            setNewRowValues(tableState.newRowValues);
-        } else {
-            setNewRowValues(table.headersEn.reduce((acc, header, index) => {
-                if (index !== 0) {
-                    acc[header] = "";
-                }
-                return acc;
-            }, {} as { [key: string]: string }));
-        }
-    }, [tableState, table.headersEn]);
+    const [source, setSource] = useState<any[]>(tableState?.source || []);
+    const [newRowValues, setNewRowValues] = useState<NewRowValues>(tableState?.newRowValues || {});
+    const [editingRows, setEditingRows] = useState<EditingRows>(tableState?.editingRows || []);
 
     useEffect(() => {
         return () => {
-            if (tableState?.source !== source || tableState?.newRowValues !== newRowValues) {
-                saveTableState(table.name, { ...tableState, source, newRowValues });
+            if (tableState?.source !== source || tableState.editingRows !== editingRows || tableState.newRowValues !== newRowValues) {
+                saveTableState(tableState.name, { ...tableState, source, editingRows, newRowValues });
             }
         };
-    }, [table.name, source, newRowValues]);
+    }, [tableState.name, source, newRowValues]);
 
     async function RefreshTable() {
         setIsLoading(true);
-        const t = await getTable(table.name);
+        const t = await getTable(tableState.name);
         setSource(t || []);
         setIsLoading(false);
     }
 
     async function addNewRow() {
-        console.log(newRowValues)
-        const row = table.headersEn.reduce((acc, header, index) => {
+        const row = tableState.headersEn.reduce((acc, header, index) => {
             if (index !== 0) {
                 acc[header] = newRowValues[header] || "";
             }
             return acc;
         }, {} as { [key: string]: string });
-        await addRecord(table.name, row);
+        await addRecord(tableState.name, row);
         const newSource = [...source, row];
         setSource(newSource);
         setNewRowValues({});
@@ -74,20 +55,20 @@ export const Table: React.FC<TableProps> = ({ table, tableState, saveTableState 
                 <table>
                     <thead>
                         <tr>
-                            {headersRu.find(x => x.name == table.name)?.headers.map((x, i) => i != 0 && (
+                            {headersRu.find(x => x.name == tableState.name)?.headers.map((x, i) => i != 0 && (
                                 <th key={i}>
                                     <span>{x}</span>
                                 </th>
                             ))}
                             <th>
-                                <span>x</span>
+                                <span>Редактирование</span>
                             </th>
                         </tr>
                     </thead>
                     <tbody>
                         {source.map((x, i) => (
                             <tr key={i}>
-                                {table.headersEn.map((y, j) => j != 0 && (
+                                {tableState.headersEn.map((y, j) => j != 0 && (
                                     <td key={j}>
                                         <span>{x[y]}</span>
                                     </td>
@@ -99,7 +80,7 @@ export const Table: React.FC<TableProps> = ({ table, tableState, saveTableState 
                         ))}
                         {source.length == 0 && (
                             <tr>
-                                <td colSpan={table.headersEn.length}>
+                                <td colSpan={tableState.headersEn.length}>
                                     <span>Здесь пока нету записей, но вы можете их добавить!</span>
                                 </td>
                             </tr>
@@ -107,7 +88,7 @@ export const Table: React.FC<TableProps> = ({ table, tableState, saveTableState 
                     </tbody>
                     <tfoot>
                         <tr>
-                            {table.headersEn.map((x, i) => i != 0 && (
+                            {tableState.headersEn.map((x, i) => i != 0 && (
                                 <td key={i}>
                                     <div className="inTD">
                                         <input

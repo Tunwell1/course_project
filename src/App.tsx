@@ -6,19 +6,14 @@ import { useEffect, useState } from 'react';
 import { GroupTables } from './GroupTables';
 import { getTable, getColumnNames } from './database';
 import { Table } from './Table';
+import { Tables, TableState } from './types';
 
 export const names = ['applications', 'categories', 'categoriesInLicenses', 'exams', 'journalIssues', 'licenses', 'medicCert', 'owners', 'revocations', 'suspensions']
-export type fullTable = {
-  name: string;
-  headersEn: string[];
-  source: any[];
-};
 
 function App() {
-  const [currentTable, setCurrentTable] = useState('applications');
+  const [currentTable, setCurrentTable] = useState('owners');
   const [isLoading, setIsLoading] = useState(true);
-  const [tables, setTables] = useState<fullTable[]>([]);
-  const [tableStates, setTableStates] = useState<{ [key: string]: any }>({});
+  const [tableStates, setTableStates] = useState<Tables>({});
 
   useEffect(() => {
     async function getAndSetTables() {
@@ -26,26 +21,25 @@ function App() {
         let content = await getTable(x);
         let headersEn = await getColumnNames(x);  
         let newRowVals = headersEn?.reduce((acc, header, index) => {
-          if (index !== 0) {
-            acc[header] = "";
-          }
+          if (index !== 0) acc[header] = "";
           return acc;
         }, {} as { [key: string]: string });
-        return { name: x, headersEn: headersEn || [], source: content || [], newRowValues: newRowVals || {} };
+        let edRows = content?.map(x => { return {id: x['id'], isEditing: false}; })
+        return { [x]: { name: x, headersEn: headersEn || [], source: content || [], newRowValues: newRowVals || {}, editingRows: edRows || [] } as TableState};
       });
       const tablesM = await Promise.all(promises);
-      setTables(tablesM);
+      const result = tablesM.reduce((acc, tableObj) => ({ ...acc, ...tableObj }), {});
+      setTableStates(result); 
       setIsLoading(false);
     }
     getAndSetTables();
   }, []);
 
-
   function ChangeCurrentTable(name: string) {
     setCurrentTable(name);
   }
 
-  function saveTableState(tableName: string, newState: any) {
+  function saveTableState(tableName: string, newState: TableState) {
     setTableStates((prevState) => ({
       ...prevState,
       [tableName]: newState
@@ -85,7 +79,6 @@ function App() {
             x == currentTable && (
               <Table
                 key={i}
-                table={tables[i]}
                 tableState={tableStates[x]}
                 saveTableState={saveTableState}
               />
