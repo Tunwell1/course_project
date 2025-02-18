@@ -24,8 +24,14 @@ function App() {
     async function getAndSetTables() {
       const promises = names.map(async (x) => {
         let content = await getTable(x);
-        let headersEn = await getColumnNames(x);
-        return { name: x, headersEn: headersEn || [], source: content || [], newRowValues: {} };
+        let headersEn = await getColumnNames(x);  
+        let newRowVals = headersEn?.reduce((acc, header, index) => {
+          if (index !== 0) {
+            acc[header] = "";
+          }
+          return acc;
+        }, {} as { [key: string]: string });
+        return { name: x, headersEn: headersEn || [], source: content || [], newRowValues: newRowVals || {} };
       });
       const tablesM = await Promise.all(promises);
       setTables(tablesM);

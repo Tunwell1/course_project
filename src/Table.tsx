@@ -15,6 +15,19 @@ export const Table: React.FC<TableProps> = ({ table, tableState, saveTableState 
     const [newRowValues, setNewRowValues] = useState<{ [key: string]: any }>(tableState?.newRowValues || {});
 
     useEffect(() => {
+        if (tableState?.newRowValues) {
+            setNewRowValues(tableState.newRowValues);
+        } else {
+            setNewRowValues(table.headersEn.reduce((acc, header, index) => {
+                if (index !== 0) {
+                    acc[header] = "";
+                }
+                return acc;
+            }, {} as { [key: string]: string }));
+        }
+    }, [tableState, table.headersEn]);
+
+    useEffect(() => {
         return () => {
             if (tableState?.source !== source || tableState?.newRowValues !== newRowValues) {
                 saveTableState(table.name, { ...tableState, source, newRowValues });
@@ -30,6 +43,7 @@ export const Table: React.FC<TableProps> = ({ table, tableState, saveTableState 
     }
 
     async function addNewRow() {
+        console.log(newRowValues)
         const row = table.headersEn.reduce((acc, header, index) => {
             if (index !== 0) {
                 acc[header] = newRowValues[header] || "";
