@@ -29,11 +29,13 @@ export async function getTable(nameTable: string) {
 }
 
 export async function addRecord(nameTable: string, row: any) {
-    const { error } = await supabase.from(nameTable).insert(row).select('id');
+    delete row.id;
+    const { data,error } = await supabase.from(nameTable).insert(row).select('id');
     if (error) {
-        console.error('Ошибка при добавлении данных в таблицу ' + nameTable + ": " + error);
+        console.error('Ошибка при добавлении данных в таблицу ' + nameTable + ": " + error.message);
         return null;
     }
+    return data ? data[0].id : null ;
 }
 
 export async function saveRecord(nameTable: string, row: any) {

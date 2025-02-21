@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { GroupTables } from './GroupTables';
 import { getTable, getColumnNames } from './database';
 import { Table } from './Table';
-import { Tables, TableState } from './types';
+import { Tables, TableState, EditingRows } from './types';
 
 export const names = ['applications', 'categories', 'categoriesInLicenses', 'exams', 'journalIssues', 'licenses', 'medicCert', 'owners', 'revocations', 'suspensions']
 
@@ -19,17 +19,20 @@ function App() {
     async function getAndSetTables() {
       const promises = names.map(async (x) => {
         let content = await getTable(x);
-        let headersEn = await getColumnNames(x);  
+        let headersEn = await getColumnNames(x);
         let newRowVals = headersEn?.reduce((acc, header, index) => {
           if (index !== 0) acc[header] = "";
           return acc;
         }, {} as { [key: string]: string });
-        let edRows = content?.map(x => { return {id: x['id'], isEditing: false}; })
-        return { [x]: { name: x, headersEn: headersEn || [], source: content || [], newRowValues: newRowVals || {}, editingRows: edRows || [] } as TableState};
+        let edRows: EditingRows = content?.reduce((acc, x) => {
+          acc[x['id']] = false;
+          return acc;
+        }, {} as EditingRows);
+        return { [x]: { name: x, headersEn: headersEn || [], source: content || [], newRowValues: newRowVals || {}, editingRows: edRows || {} } as TableState };
       });
       const tablesM = await Promise.all(promises);
       const result = tablesM.reduce((acc, tableObj) => ({ ...acc, ...tableObj }), {});
-      setTableStates(result); 
+      setTableStates(result);
       setIsLoading(false);
     }
     getAndSetTables();

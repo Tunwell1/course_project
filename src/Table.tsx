@@ -1,21 +1,22 @@
 import { useState, useEffect } from "react";
 import { headersRu } from "./headersRu";
-import { addRecord, getTable } from "./database";
+import { addRecord, getTable, saveRecord } from "./database";
 import { EditingRows, NewRowValues, TableProps } from "./types";
 
 export const Table: React.FC<TableProps> = ({ tableState, saveTableState }) => {
     const [isLoading, setIsLoading] = useState(false);
     const [source, setSource] = useState<any[]>(tableState?.source || []);
+    const [editingSource, setEditingSource] = useState<any[]>(tableState?.source || []);
     const [newRowValues, setNewRowValues] = useState<NewRowValues>(tableState?.newRowValues || {});
-    const [editingRows, setEditingRows] = useState<EditingRows>(tableState?.editingRows || []);
+    const [editingRows, setEditingRows] = useState<EditingRows>(tableState?.editingRows || {});
 
     useEffect(() => {
         return () => {
-            if (tableState?.source !== source || tableState.editingRows !== editingRows || tableState.newRowValues !== newRowValues) {
+            if (tableState?.source != source || tableState.editingRows != editingRows || tableState.newRowValues != newRowValues) {
                 saveTableState(tableState.name, { ...tableState, source, editingRows, newRowValues });
             }
         };
-    }, [tableState.name, source, newRowValues]);
+    }, [tableState.name, source, newRowValues, editingRows]);
 
     async function RefreshTable() {
         setIsLoading(true);
@@ -25,16 +26,23 @@ export const Table: React.FC<TableProps> = ({ tableState, saveTableState }) => {
     }
 
     async function addNewRow() {
-        const row = tableState.headersEn.reduce((acc, header, index) => {
-            if (index !== 0) {
-                acc[header] = newRowValues[header] || "";
-            }
+        const row = tableState.headersEn.reduce((acc, header) => {
+            acc[header] = newRowValues[header] || "";
             return acc;
         }, {} as { [key: string]: string });
-        await addRecord(tableState.name, row);
+        let id = await addRecord(tableState.name, row);
+        row['id'] = id;
         const newSource = [...source, row];
+        console.log(newSource);
         setSource(newSource);
         setNewRowValues({});
+    }
+
+    function handleInputChangeRows(e: React.ChangeEvent<HTMLInputElement>, id: string, header: string) {
+        let rows = [...source];
+        let ind = rows.findIndex(x => x.id == id);
+        rows[ind][header] = e.target.value;
+        setEditingSource(rows);
     }
 
     const handleInputChange = (header: string, value: string) => {
@@ -43,6 +51,18 @@ export const Table: React.FC<TableProps> = ({ tableState, saveTableState }) => {
             [header]: value
         }));
     };
+
+    async function handleEditingChange(id: number) {
+        if (editingRows[id]) {
+            await saveRecord(tableState.name, source.find(x => x.id == id))
+            setSource(editingSource);
+        }
+        setEditingRows(prevEditingRows => ({
+            ...prevEditingRows,
+            [id]: !prevEditingRows[id]
+        }));
+    }
+
 
     return (
         <div className="space-table">
@@ -70,11 +90,21 @@ export const Table: React.FC<TableProps> = ({ tableState, saveTableState }) => {
                             <tr key={i}>
                                 {tableState.headersEn.map((y, j) => j != 0 && (
                                     <td key={j}>
-                                        <span>{x[y]}</span>
+                                        {editingRows[x['id']] ? (
+                                            <div className="inTD">
+                                                <input
+                                                    type="text"
+                                                    value={editingSource.find(z => z.id == x['id'])[y]}
+                                                    onChange={(e) => handleInputChangeRows(e, x['id'], y)}
+                                                />
+                                            </div>
+                                        ) : (
+                                            <span>{x[y]}</span>
+                                        )}
                                     </td>
                                 ))}
                                 <td>
-                                    <button>кнопочка</button>
+                                    <button onClick={() => handleEditingChange(x['id'])}>{editingRows[x['id']] ? "Сохранить" : "Редактировать"}</button>
                                 </td>
                             </tr>
                         ))}

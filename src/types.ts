@@ -12,9 +12,9 @@ export type TableState = {
 
 export type NewRowValues = { [key: string]: any }
 
-export type EditingRows = { id: number, isEditing: boolean }[]
+export type EditingRows = {  [key: string]: boolean }
 
 export type TableProps = {
     tableState: TableState;
-    saveTableState: (tableName: string, newState: any) => void;
+    saveTableState: (tableName: string, newState: TableState) => void;
 }

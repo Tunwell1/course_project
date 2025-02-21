@@ -1,0 +1,4 @@
+viewing rows
+adding rows
+opportunity to refresh table from database
+saving and restoring states of tables in case of changes in the selected current table
