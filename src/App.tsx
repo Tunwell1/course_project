@@ -28,7 +28,7 @@ function App() {
           acc[x['id']] = false;
           return acc;
         }, {} as EditingRows);
-        return { [x]: { name: x, headersEn: headersEn || [], source: content || [], newRowValues: newRowVals || {}, editingRows: edRows || {} } as TableState };
+        return { [x]: { name: x, headersEn: headersEn || [], source: content || [], newRowValues: newRowVals || {}, editingRows: edRows || {}, editingSource: content } as TableState };
       });
       const tablesM = await Promise.all(promises);
       const result = tablesM.reduce((acc, tableObj) => ({ ...acc, ...tableObj }), {});
