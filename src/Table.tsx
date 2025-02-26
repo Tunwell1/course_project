@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { headersRu } from "./headersRu";
 import { EditingRows, NewRowValues, SortConfig, TableProps } from "./types";
-import { addNewRow, handleEditingChange, handleInputChange, handleInputChangeRows, RefreshTable } from "./functions";
+import { addNewRow, handleEditingChange, handleInputChange, handleInputChangeRows, RefreshTable, sort } from "./functions";
 
 export const Table: React.FC<TableProps> = ({ tableState, saveTableState }) => {
     const [isLoading, setIsLoading] = useState(false);
@@ -9,15 +9,15 @@ export const Table: React.FC<TableProps> = ({ tableState, saveTableState }) => {
     const [editingSource, setEditingSource] = useState<any[]>(tableState?.editingSource || []);
     const [newRowValues, setNewRowValues] = useState<NewRowValues>(tableState?.newRowValues || {});
     const [editingRows, setEditingRows] = useState<EditingRows>(tableState?.editingRows || {});
-    const [sortConf, setSortConf] = useState<SortConfig>(tableState.sortConf || {column: tableState.headersEn[0], type: "none"})
+    const [sortConf, setSortConf] = useState<SortConfig>(tableState.sortConf || { column: tableState.headersEn[0], type: "none" })
     const [originalSource, setOriginalSource] = useState<any[]>(tableState?.source || []);
 
     useEffect(() => {
         return () => {
             if (
                 tableState?.source != source ||
-                tableState.editingRows != editingRows || 
-                tableState.newRowValues != newRowValues || 
+                tableState.editingRows != editingRows ||
+                tableState.newRowValues != newRowValues ||
                 tableState.editingSource != editingSource ||
                 tableState.sortConf != sortConf
             ) {
@@ -26,41 +26,17 @@ export const Table: React.FC<TableProps> = ({ tableState, saveTableState }) => {
         };
     }, [tableState.name, source, newRowValues, editingRows, editingSource, sortConf]);
 
-    function sort(col: string) {
-        console.log(originalSource);
-        setSortConf((prevSortConf) => {
-            if (prevSortConf?.column === col) {
-                switch (prevSortConf.type) {
-                    case "asc":
-                        setSource([...source].sort((a,b) => a[col]<b[col] ? 1 : -1))
-                        return { ...prevSortConf, type: "desc" };
-                    case "desc":
-                        setSource([...originalSource]);
-                        return { ...prevSortConf, type: "none" };
-                    case "none":
-                        setSource([...source].sort((a,b) => a[col]>b[col] ? 1 : -1))
-                        return { ...prevSortConf, type: "asc" };
-                    default:
-                        return prevSortConf;
-                }
-            } else {
-                setSource([...source].sort((a,b) => a[col]>b[col] ? 1 : -1))
-                return { column: col, type: "asc" };
-            }
-        });
-    }
-
+    useEffect(() => {
+        sort(sortConf.column,setSortConf,setSource,source,originalSource,true);
+    },[originalSource])
 
     return (
         <div className="space-table">
             <div>
-                <button onClick={() => RefreshTable(setIsLoading, tableState.name, setSource)}>Обновить</button>
+                <button onClick={() => RefreshTable(setIsLoading, tableState.name, setSource, setOriginalSource)}>Обновить</button>
             </div>
-            {isLoading ? (
-                <p>
-                    Загрузка...
-                </p>
-            ) : (
+            {isLoading ? ( <p> Загрузка...</p> ) : 
+            (
                 <table>
                     <thead>
                         <tr>
@@ -68,7 +44,7 @@ export const Table: React.FC<TableProps> = ({ tableState, saveTableState }) => {
                                 <th key={i}>
                                     <div className="inTH">
                                         <span>{x}</span>
-                                        <button onClick={() => sort(tableState.headersEn[i])}>
+                                        <button onClick={() => sort(tableState.headersEn[i], setSortConf, setSource, source, originalSource, false)}>
                                             {sortConf?.column === tableState.headersEn[i] ? (
                                                 sortConf.type === "asc" ? "↑" :
                                                     sortConf.type === 'desc' ? "↓" : "↕"
@@ -101,7 +77,7 @@ export const Table: React.FC<TableProps> = ({ tableState, saveTableState }) => {
                                     </td>
                                 ))}
                                 <td>
-                                    <button onClick={() => handleEditingChange(x['id'], editingRows, tableState, source, setSource, editingSource, setEditingRows)}>{editingRows[x['id']] ? "Сохранить" : "Редактировать"}</button>
+                                    <button onClick={() => handleEditingChange(x['id'], editingRows, tableState, source, setSource, editingSource, setEditingRows,originalSource,setOriginalSource)}>{editingRows[x['id']] ? "Сохранить" : "Редактировать"}</button>
                                 </td>
                             </tr>
                         ))}
@@ -127,7 +103,7 @@ export const Table: React.FC<TableProps> = ({ tableState, saveTableState }) => {
                                 </td>
                             ))}
                             <td>
-                                <button onClick={() => addNewRow(tableState, newRowValues, source, setSource, setNewRowValues)}>+</button>
+                                <button onClick={async () => addNewRow(tableState, newRowValues, source, setSource, setNewRowValues, originalSource, setOriginalSource)}>+</button>
                             </td>
                         </tr>
                     </tfoot>
