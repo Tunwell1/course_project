@@ -1,3 +1,9 @@
+@font-face {
+  font-family: "Light"; 
+  src: local("ShareTechMonoRegular"),
+    url("../Fonts/Aquawax-Fx-Demibold-trial.ttf") format("truetype");
+}
+
 #root {
   margin: 0;
   padding: 0;

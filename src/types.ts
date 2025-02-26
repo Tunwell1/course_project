@@ -21,6 +21,11 @@ export type TableProps = {
     saveTableState: (tableName: string, newState: TableState) => void;
 }
 
+export type ModalProps = {
+    setIsModalOpen: (a: boolean) => void;
+    column: string;
+}
+
 export type SortConfig = {
     column: string,
     type: 'asc' | 'desc' | 'none'
