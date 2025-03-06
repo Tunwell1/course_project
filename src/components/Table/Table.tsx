@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { headersRu } from "./headersRu";
-import { EditingRows, NewRowValues, SortConfig, TableProps } from "./types";
-import { addNewRow, handleEditingChange, handleInputChange, handleInputChangeRows, RefreshTable, sort } from "./functions";
-import { Modal } from "./Modal";
+import { headersRu } from "../../headersRu";
+import { EditingRows, FilterConfig, NewRowValues, SortConfig, TableProps } from "../../types";
+import { addNewRow, handleEditingChange, handleInputChange, handleInputChangeRows, RefreshTable, sort, normalizeDate, filterData, getTypeFilter, removeFilter } from "../../functions";
+import { ModalFilter } from "../ModalFilter/ModalFilter";
+import "./Table.css";
 
 export const Table: React.FC<TableProps> = ({ tableState, saveTableState }) => {
     const [isLoading, setIsLoading] = useState(false);
@@ -12,8 +13,30 @@ export const Table: React.FC<TableProps> = ({ tableState, saveTableState }) => {
     const [editingRows, setEditingRows] = useState<EditingRows>(tableState?.editingRows || {});
     const [sortConf, setSortConf] = useState<SortConfig>(tableState.sortConf || {})
     const [originalSource, setOriginalSource] = useState<any[]>(tableState?.source || []);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [filterColumn, setFilterColumn] = useState('')
+    const [isModalFilterOpen, setIsModalFilterOpen] = useState(false);
+    const [filterColumn, setFilterColumn] = useState('');
+    const [filterColumnEn, setFilterColumnEn] = useState('');
+    const [filterValues, setFilterValues] = useState<any[]>([]);
+    const [filterType, setFilterType] = useState<string>('none');
+    const [filterIsCaseSensitive, setFilterIsCaseSensitive] = useState<boolean>(false);
+    const [filterConfig, setFilterConfig] = useState<FilterConfig[]>([]);
+
+    useEffect(() => {
+        if (!isModalFilterOpen && filterValues.length > 0) {
+            const filterTypeColumn = tableState.types.find(x => x.column_name == filterColumnEn)?.data_type || 'text';
+            const filteredSource = filterData(
+                source,
+                filterTypeColumn,
+                filterType,
+                filterColumnEn,
+                filterValues,
+                filterIsCaseSensitive
+            );
+            setFilterConfig([...filterConfig, { column: filterColumnEn, typeFilter: filterType, typeColumn: filterTypeColumn, values: filterValues, isCaseSensitive: filterIsCaseSensitive }]);
+            setSource(filteredSource);
+            setFilterValues([]);
+        }
+    }, [isModalFilterOpen, filterValues]);
 
     useEffect(() => {
         return () => {
@@ -34,16 +57,35 @@ export const Table: React.FC<TableProps> = ({ tableState, saveTableState }) => {
     }, [originalSource])
 
     return (
-        <div className="space-table" style={isModalOpen ? { userSelect: "none" } : { userSelect: 'auto' }}>
+        <div className="space-table" style={isModalFilterOpen ? { userSelect: "none" } : { userSelect: 'auto' }}>
             <div>
-                <button onClick={() => RefreshTable(setIsLoading, tableState.name, setSource, setOriginalSource)}>Обновить</button>
+                <button onClick={() => RefreshTable(setIsLoading, tableState.name, setSource, setOriginalSource, setFilterConfig)}>Обновить</button>
+                {filterConfig.length > 0 && (
+                    <div className="space-filters">
+                        {filterConfig.map((x, i) => (
+                            <div className="filter-config" key={i}>
+                                <span>
+                                    {headersRu.find(y => y.name == tableState.name)?.headers[tableState.headersEn.indexOf(x.column)]} {getTypeFilter(x.typeFilter)} {' '}
+                                    {(x.typeFilter === 'inRange' || x.typeFilter === 'notInRange') && (x.typeColumn === 'integer' || x.typeColumn === 'bigint' || x.typeColumn === 'date')
+                                        ? `от ${x.typeColumn === 'date' ? normalizeDate(x.values[0]).toLocaleDateString() : x.values[0]} до ${x.typeColumn === 'date' ? normalizeDate(x.values[1]).toLocaleDateString() : x.values[1]}`
+                                        : x.typeColumn === 'text'
+                                            ? `"${x.values.join(', ')}"`
+                                            : x.typeColumn === 'date' ? normalizeDate(x.values[0]).toLocaleDateString() : x.values.join(', ')
+                                    }
+                                    {x.typeColumn === 'text' ? (x.isCaseSensitive ? ' c учетом регистра' : ' без учета регистра') : ''}
+                                </span>
+                                <button onClick={() => removeFilter(x.column, filterConfig, setFilterConfig, originalSource, setSource)}>X</button>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
             {isLoading ? (<p> Загрузка...</p>) :
                 (
                     <table>
                         <thead>
                             <tr>
-                                {headersRu.find(x => x.name == tableState.name)?.headers.map((x, i) => i != 0 && (
+                                {headersRu.find(x => x.name == tableState.name)?.headers.map((x, i) => i >= 0 && (
                                     <th key={i}>
                                         <div className="inTH">
                                             <span>{x}</span>
@@ -55,7 +97,8 @@ export const Table: React.FC<TableProps> = ({ tableState, saveTableState }) => {
                                             </button>
                                             <button onClick={() => {
                                                 setFilterColumn(x);
-                                                setIsModalOpen(true);
+                                                setFilterColumnEn(tableState.headersEn[i]);
+                                                setIsModalFilterOpen(true);
                                             }}>▼</button>
                                         </div>
                                     </th>
@@ -68,7 +111,7 @@ export const Table: React.FC<TableProps> = ({ tableState, saveTableState }) => {
                         <tbody>
                             {source.map((x, i) => (
                                 <tr key={i}>
-                                    {tableState.headersEn.map((y, j) => j != 0 && (
+                                    {tableState.headersEn.map((y, j) => j >= 0 && (
                                         <td key={j}>
                                             {editingRows[x['id']] ? (
                                                 <div className="inTD">
@@ -90,7 +133,7 @@ export const Table: React.FC<TableProps> = ({ tableState, saveTableState }) => {
                             ))}
                             {source.length == 0 && (
                                 <tr>
-                                    <td colSpan={tableState.headersEn.length}>
+                                    <td colSpan={tableState.headersEn.length + 1}>
                                         <span>Здесь пока нету записей, но вы можете их добавить!</span>
                                     </td>
                                 </tr>
@@ -98,7 +141,7 @@ export const Table: React.FC<TableProps> = ({ tableState, saveTableState }) => {
                         </tbody>
                         <tfoot>
                             <tr>
-                                {tableState.headersEn.map((x, i) => i != 0 && (
+                                {tableState.headersEn.map((x, i) => i >= 0 && (
                                     <td key={i}>
                                         <div className="inTD">
                                             <input
@@ -116,7 +159,14 @@ export const Table: React.FC<TableProps> = ({ tableState, saveTableState }) => {
                         </tfoot>
                     </table>
                 )}
-            {isModalOpen && <Modal column={filterColumn} setIsModalOpen={setIsModalOpen} />}
+            {isModalFilterOpen && <ModalFilter
+                column={filterColumn}
+                setIsModalOpen={setIsModalFilterOpen}
+                type={tableState.types.find(x => x.column_name == filterColumnEn)?.data_type || 'text'}
+                setFilterValues={setFilterValues}
+                setFilterType={setFilterType}
+                setFilterIsCaseSensitive={setFilterIsCaseSensitive}
+            />}
         </div>
-    )
-}
+    );
+} 

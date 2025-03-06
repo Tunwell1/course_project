@@ -53,3 +53,18 @@ export async function deleteRecordById(nameTable: string, id: number) {
         return null;
     }
 }
+
+export async function getColumnTypes(tableName: string): Promise<{ column_name: string, data_type: string }[] | null> {
+    try {
+        const { data, error } = await supabase.rpc('get_column_types', {
+            target_table_name: tableName,
+        });
+        if (error) {
+            throw error;
+        }
+        return data;
+    } catch (error) {
+        console.error('Ошибка при получении типов столбцов:', error);
+        return null;
+    }
+}

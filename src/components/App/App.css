@@ -1,0 +1,45 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.header {
+  height: 30px;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+}
+
+.header span {
+  font-size: 24px;
+  font-weight: bold;
+  font-family: 'Segoe UI', sans-serif;
+  margin-left: auto;
+  margin-right: auto;
+  color: #4834d4;
+}
+
+.main-content {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.table-space {
+  width: 81%;
+  height: 100%;
+}
+
+.panel-for-choosing {
+  width: 15%;
+  border-radius: 10px;
+  box-shadow: 2px 4px 6px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  border: 1px rgba(0, 0, 0, 0.15) solid;
+  background-color: white;
+  padding: 8px;
+  gap: 8px;
+  justify-content: space-around;
+}
