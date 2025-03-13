@@ -9,17 +9,30 @@ export type TableState = {
     newRowValues: NewRowValues;
     editingRows: EditingRows;
     source: any[];
+    originalSource: any[];
     editingSource: any[];
+    selectingRows: SelectingRows;
     sortConf: SortConfig;
+    filterConfig: FilterConfig[];
+    searchedRows: SearchedSource;
+    searchValue: string;
+    dopFilters?: DopFilterConfig[];
 }
 
 export type NewRowValues = { [key: string]: any }
 
-export type EditingRows = {  [key: string]: boolean }
+export type EditingRows = { [key: string]: boolean }
+
+export type SelectingRows = { [key: string]: boolean }
+
+export type SearchedSource = { [key: string]: boolean }
 
 export type TableProps = {
     tableState: TableState;
     saveTableState: (tableName: string, newState: TableState) => void;
+    changeCurrentTable: (tableName: string) => void;
+    states: Tables;
+    setStates: (a: Tables) => void;
 }
 
 export type ModalFilterProps = {
@@ -32,10 +45,21 @@ export type ModalFilterProps = {
     dropDrown?: any[];
 }
 
+export type SelectRowProps = {
+    fkTableName: string;
+    tableName: string;
+    column: string;
+    id?: any;
+    isSelect?: boolean;
+    close: (id?: any, osnNameTable?: string, values?: string[]) => void;
+}
+
 export type SortConfig = {
     column: string,
     type: 'asc' | 'desc' | 'none'
 }
+
+
 
 export type FilterConfig = {
     column: string,
@@ -45,3 +69,8 @@ export type FilterConfig = {
     isCaseSensitive: boolean
 }
 
+export type DopFilterConfig = {
+    column: string,
+    values: string[],
+    selected: string
+}

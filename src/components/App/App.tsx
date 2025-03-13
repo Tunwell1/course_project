@@ -5,9 +5,9 @@ import { useEffect, useState } from 'react';
 import { GroupTables } from '../GroupTables/GroupTables';
 import { getTable, getColumnNames, getColumnTypes } from '../../database';
 import { Table } from '../Table/Table';
-import { Tables, TableState, EditingRows } from '../../types';
+import { Tables, TableState, EditingRows, SelectingRows, DopFilterConfig } from '../../types';
+import { defaultSelections, names } from '../../constants';
 
-export const names = ['applications', 'categories', 'categoriesInLicenses', 'exams', 'journalIssues', 'licenses', 'medicCert', 'owners', 'revocations', 'suspensions']
 
 function App() {
   const [currentTable, setCurrentTable] = useState('owners');
@@ -28,7 +28,31 @@ function App() {
           acc[x['id']] = false;
           return acc;
         }, {} as EditingRows);
-        return { [x]: { name: x, headersEn: headersEn || [], types: types || [], source: content || [], newRowValues: newRowVals || {}, editingRows: edRows || {}, editingSource: content } as TableState };
+        let selectingRows: SelectingRows = content?.reduce((acc, x) => {
+          acc[x['id']] = false;
+          return acc;
+        }, {} as SelectingRows);
+        let dopFilters: DopFilterConfig[] = defaultSelections.find(y => y.nameTable == x)?.columns.map(y => ({ column: y, values: defaultSelections.find(z => z.nameTable == x)?.defaultSelections[0] || [], selected: defaultSelections.find(z => z.nameTable == x)?.defaultSelections[0][0] || '' })) || [];
+        return {
+          [x]:
+            {
+              name: x,
+              headersEn: headersEn || [],
+              types: types || [],
+              source: content || [],
+              newRowValues: newRowVals || {},
+              editingRows: edRows || {},
+              selectingRows: selectingRows || {},
+              editingSource: content,
+              filterConfig: [],
+              sortConf: { column: '', type: 'none' },
+              originalSource: content,
+              searchedRows: {},
+              searchValue: '',
+              tablesPK: [],
+              dopFilters: dopFilters
+            } as TableState
+        };
       });
       const tablesM = await Promise.all(promises);
       const result = tablesM.reduce((acc, tableObj) => ({ ...acc, ...tableObj }), {});
@@ -37,10 +61,6 @@ function App() {
     }
     getAndSetTables();
   }, []);
-
-  function ChangeCurrentTable(name: string) {
-    setCurrentTable(name);
-  }
 
   function saveTableState(tableName: string, newState: TableState) {
     setTableStates((prevState) => ({
@@ -59,14 +79,14 @@ function App() {
           <GroupTables
             names={['Владельцы', 'Категории']}
             namesEn={['owners', 'categories']}
-            changeNameMethod={ChangeCurrentTable}
+            changeNameMethod={setCurrentTable}
             title="Постоянные данные"
             currentTable={currentTable}
           />
           <GroupTables
             names={['Заявки', 'Экзамены']}
             namesEn={['applications', 'exams']}
-            changeNameMethod={ChangeCurrentTable}
+            changeNameMethod={setCurrentTable}
             title="Процессы"
             currentTable={currentTable}
           />
@@ -80,7 +100,7 @@ function App() {
               'История приостановки водительских удостоверений'
             ]}
             namesEn={['licenses', 'medicCert', 'categoriesInLicenses', 'journalIssues', 'revocations', 'suspensions']}
-            changeNameMethod={ChangeCurrentTable}
+            changeNameMethod={setCurrentTable}
             title="Документы"
             currentTable={currentTable}
           />
@@ -95,6 +115,9 @@ function App() {
                   key={i}
                   tableState={tableStates[x]}
                   saveTableState={saveTableState}
+                  changeCurrentTable={setCurrentTable}
+                  states={tableStates}
+                  setStates={setTableStates}
                 />
               )
             ))

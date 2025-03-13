@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
 import { ModalFilterProps } from '../../types';
+import { TextFilter } from './TextFilter';
+import { NumberFilter } from './NumberFilter';
+import { DateFilter } from './DateFilter';
 import "./ModalFilter.css";
 
 export const ModalFilter: React.FC<ModalFilterProps> = ({ 
@@ -11,9 +14,9 @@ export const ModalFilter: React.FC<ModalFilterProps> = ({
     setFilterIsCaseSensitive 
 }) => {
     const [isCaseSensitive, setIsCaseSensitive] = useState(false);
-    const [filtType, setFiltType] = useState('none');
-    const [numberFilterType, setNumberFilterType] = useState('none');
-    const [dateFilterType, setDateFilterType] = useState('none');
+    const [filtType, setFiltType] = useState('equals');
+    const [numberFilterType, setNumberFilterType] = useState('equals');
+    const [dateFilterType, setDateFilterType] = useState('equals');
     const [filterVals, setFilterVals] = useState<any[]>([
         type === 'text' ? '' : 
         type === 'integer' || type === 'bigint' ? 0 : 
@@ -77,128 +80,34 @@ export const ModalFilter: React.FC<ModalFilterProps> = ({
     return (
         <div className="modal" onClick={() => setIsModalOpen(false)}>
             <div className='modal-content' onClick={(e) => e.stopPropagation()}>
-                <span className='header'>Фильтрация по столбцу "{column}"</span>
-                
+                <span className='header'>Фильтрация по столбцу "{column}"</span>   
                 {type === 'text' && (
-                    <div className="filter-options">
-                        <select 
-                            value={filtType} 
-                            onChange={(e) => setFiltType(e.target.value)}
-                            className="filter-select"
-                        >
-                            <option value="none">Выберите тип фильтра</option>
-                            <option value="equals">Равняется</option>
-                            <option value="contains">Содержит</option>
-                            <option value="startsWith">Начинается с</option>
-                            <option value="endsWith">Заканчивается на</option>
-                        </select>
-                        
-                        <div className="case-sensitive">
-                            <input 
-                                type="checkbox" 
-                                id="caseSensitive" 
-                                checked={isCaseSensitive}
-                                onChange={(e) => setIsCaseSensitive(e.target.checked)}
-                            />
-                            <label htmlFor="caseSensitive">Учитывать регистр</label>
-                        </div>
-
-                        <input 
-                            type="text" 
-                            placeholder='Введите значение' 
-                            className="filter-input"
-                            value={filterVals[0]}
-                            onChange={(e) => setFilterVals(prev => {
-                                const newFilterVals = [...prev];
-                                newFilterVals[0] = e.target.value;
-                                return newFilterVals;
-                            })}
-                        />
-                    </div>
+                    <TextFilter
+                        filtType={filtType}
+                        setFiltType={setFiltType}
+                        filterVals={filterVals}
+                        setFilterVals={setFilterVals}
+                        isCaseSensitive={isCaseSensitive}
+                        setIsCaseSensitive={setIsCaseSensitive}
+                    />
                 )}
 
                 {(type === 'integer' || type === 'bigint') && (
-                    <div className="filter-options">
-                        <select 
-                            value={numberFilterType} 
-                            onChange={(e) => setNumberFilterType(e.target.value)}
-                            className="filter-select"
-                        >
-                            <option value="none">Выберите тип фильтра</option>
-                            <option value="equals">Равняется</option>
-                            <option value="notEquals">Не равняется</option>
-                            <option value="greater">Больше</option>
-                            <option value="greaterOrEqual">Больше или равно</option>
-                            <option value="lessOrEqual">Меньше или равно</option>
-                            <option value="inRange">Входит в диапазон</option>
-                            <option value="notInRange">Не входит в диапазон</option>
-                        </select>
-                        <input 
-                            type="number" 
-                            placeholder='Введите значение' 
-                            className="filter-input"
-                            value={filterVals[0]}
-                            onChange={(e) => setFilterVals(prev => {
-                                const newFilterVals = [...prev];
-                                newFilterVals[0] = e.target.value;
-                                return newFilterVals;
-                            })}
-                        />
-                        {(numberFilterType === 'inRange' || numberFilterType === 'notInRange') && filterVals.length > 1 && (
-                            <input 
-                                type="number" 
-                                placeholder='Введите значение' 
-                                className="filter-input"
-                                value={filterVals[1]}
-                                onChange={(e) => setFilterVals(prev => {
-                                    const newFilterVals = [...prev];
-                                    newFilterVals[1] = e.target.value;
-                                    return newFilterVals;
-                                })}
-                            />
-                        )}
-                    </div>
+                    <NumberFilter
+                        numberFilterType={numberFilterType}
+                        setNumberFilterType={setNumberFilterType}
+                        filterVals={filterVals}
+                        setFilterVals={setFilterVals}
+                    />
                 )}
 
                 {type === 'date' && (
-                    <div className="filter-options">
-                        <select 
-                            value={dateFilterType} 
-                            onChange={(e) => setDateFilterType(e.target.value)}
-                            className="filter-select"
-                        >
-                            <option value="none">Выберите тип фильтра</option>
-                            <option value="equals">Равняется</option>
-                            <option value="notEquals">Не равняется</option>
-                            <option value="greater">Больше</option>
-                            <option value="greaterOrEqual">Больше или равно</option>
-                            <option value="lessOrEqual">Меньше или равно</option>
-                            <option value="inRange">Входит в диапазон</option>
-                            <option value="notInRange">Не входит в диапазон</option>
-                        </select>
-                        <input 
-                            type="date" 
-                            className="filter-input"
-                            value={filterVals[0].toISOString().split('T')[0]}
-                            onChange={(e) => setFilterVals(prev => {
-                                const newFilterVals = [...prev];
-                                newFilterVals[0] = new Date(e.target.value);
-                                return newFilterVals;
-                            })}
-                        />
-                        {(dateFilterType === 'inRange' || dateFilterType === 'notInRange') && filterVals.length > 1 && (
-                            <input 
-                                type="date" 
-                                className="filter-input"
-                                value={filterVals[1].toISOString().split('T')[0]}
-                                onChange={(e) => setFilterVals(prev => {
-                                    const newFilterVals = [...prev];
-                                    newFilterVals[1] = new Date(e.target.value);
-                                    return newFilterVals;
-                                })}
-                            />
-                        )}
-                    </div>
+                    <DateFilter
+                        dateFilterType={dateFilterType}
+                        setDateFilterType={setDateFilterType}
+                        filterVals={filterVals}
+                        setFilterVals={setFilterVals}
+                    />
                 )}
 
                 <button className='apply-filter' onClick={applyFilter}>Применить</button>

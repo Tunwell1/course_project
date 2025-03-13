@@ -1,5 +1,22 @@
-import { getTable, addRecord, saveRecord } from "./database";
-import { EditingRows, FilterConfig, NewRowValues, SortConfig, TableState } from "./types";
+import { fk, subordinateTables } from "./constants";
+import { getTable, addRecord, saveRecord, deleteRecordById } from "./database";
+import { DopFilterConfig, EditingRows, FilterConfig, NewRowValues, SearchedSource, SelectingRows, SortConfig, Tables, TableState } from "./types";
+
+// loading tables for foreign keys
+export const loadTables = async (tableState: TableState, setTablesPK: React.Dispatch<React.SetStateAction<{ nameTable: string, source: any[] }[]>>) => {
+    let fk_data = fk.find(x => x.nameTable == tableState.name);
+    if (fk_data) {
+        const promises = fk_data.tablesPK.map(async (x) => {
+            const data = await getTable(x);
+            return {
+                nameTable: x,
+                source: data || []
+            };
+        });
+        const results = await Promise.all(promises);
+        setTablesPK(results);
+    }
+};
 
 // updating source data of table from database
 export async function RefreshTable(
@@ -55,16 +72,36 @@ export async function handleEditingChange(
     editingSource: any[],
     setEditingRows: React.Dispatch<React.SetStateAction<EditingRows>>,
     originalSource: any[],
-    setOriginalSource: React.Dispatch<React.SetStateAction<any[]>>
+    setOriginalSource: React.Dispatch<React.SetStateAction<any[]>>,
+    setEditingSource: React.Dispatch<React.SetStateAction<any[]>>
 ) {
     if (editingRows[id]) {
-        await saveRecord(tableState.name, source.find(x => x.id == id))
-        setSource(editingSource);
-        let newOrigSource = [...originalSource];
-        let ind = newOrigSource.findIndex(x => x.id == id)
-        newOrigSource[ind] = source.find(x => x.id == id);
+        const rowToSave = editingSource.find(x => x.id == id);
+        await saveRecord(tableState.name, rowToSave);
+
+        const updatedSource = source.map(row =>
+            row.id == id ? rowToSave : row
+        );
+        setSource(updatedSource);
+
+        const newOrigSource = originalSource.map(row =>
+            row.id == id ? rowToSave : row
+        );
         setOriginalSource(newOrigSource);
+    } else {
+        const rowToEdit = source.find(x => x.id == id);
+        const updatedEditingSource = [...editingSource];
+        const existingRowIndex = updatedEditingSource.findIndex(row => row.id == id);
+
+        if (existingRowIndex !== -1) {
+            updatedEditingSource[existingRowIndex] = { ...rowToEdit };
+        } else {
+            updatedEditingSource.push({ ...rowToEdit });
+        }
+
+        setEditingSource(updatedEditingSource);
     }
+
     setEditingRows(prevEditingRows => ({
         ...prevEditingRows,
         [id]: !prevEditingRows[id]
@@ -102,40 +139,75 @@ export async function sort(
     col: string,
     setSortConf: React.Dispatch<React.SetStateAction<SortConfig>>,
     setSource: React.Dispatch<React.SetStateAction<any[]>>,
-    source: any[],
     originalSource: any[],
-    isRepetion: boolean, // is used to re-sort when adding or changing data (but not when pressing the sort button)
+    isRepetion: boolean,
+    filterConfig: FilterConfig[],
+    dopFilters: DopFilterConfig[]
 ) {
     setSortConf((prevSortConf) => {
+        // Сначала применяем основные фильтры
+        let filteredData = applyAllFilters(filterConfig, originalSource);
+
+        // Затем применяем дополнительные фильтры
+        dopFilters.forEach(dopFilter => {
+            if (dopFilter.selected !== 'all') {
+                filteredData = filteredData.filter(x => x[dopFilter.column] === dopFilter.selected);
+            }
+        });
+
+        const compareValues = (a: any, b: any, col: string): number => {
+            const valA = a[col];
+            const valB = b[col];
+
+            // Обработка null значений
+            if (valA === null && valB === null) return 0;
+            if (valA === null) return 1;
+            if (valB === null) return -1;
+
+            // Определение типа данных
+            if (typeof valA === 'number' && typeof valB === 'number') {
+                return valA - valB;
+            }
+
+            // Обработка дат
+            const dateA = new Date(valA);
+            const dateB = new Date(valB);
+            if (!isNaN(dateA.getTime()) && !isNaN(dateB.getTime())) {
+                return dateA.getTime() - dateB.getTime();
+            }
+
+            // Обработка строк
+            return String(valA).localeCompare(String(valB), 'ru');
+        };
+
         if (isRepetion) {
             switch (prevSortConf.type) {
                 case "asc":
-                    setSource([...source].sort((a, b) => a[col] > b[col] ? 1 : -1))
+                    setSource([...filteredData].sort((a, b) => compareValues(a, b, col)));
                     return prevSortConf;
                 case "desc":
-                    setSource([...source].sort((a, b) => a[col] < b[col] ? 1 : -1))
+                    setSource([...filteredData].sort((a, b) => compareValues(b, a, col)));
                     return prevSortConf;
                 default:
                     return prevSortConf;
             }
-        }
-        else {
+        } else {
             if (prevSortConf?.column === col) {
                 switch (prevSortConf.type) {
                     case "asc":
-                        setSource([...source].sort((a, b) => a[col] < b[col] ? 1 : -1))
+                        setSource([...filteredData].sort((a, b) => compareValues(b, a, col)));
                         return { ...prevSortConf, type: "desc" };
                     case "desc":
-                        setSource([...originalSource]);
+                        setSource(filteredData);
                         return { ...prevSortConf, type: "none" };
                     case "none":
-                        setSource([...source].sort((a, b) => a[col] > b[col] ? 1 : -1))
-                        return { ...prevSortConf, type: "asc" };
+                        setSource([...filteredData].sort((a, b) => compareValues(a, b, col)));
+                        return { column: col, type: "asc" };
                     default:
                         return prevSortConf;
                 }
             } else {
-                setSource([...source].sort((a, b) => a[col] > b[col] ? 1 : -1))
+                setSource([...filteredData].sort((a, b) => compareValues(a, b, col)));
                 return { column: col, type: "asc" };
             }
         }
@@ -213,19 +285,19 @@ export function filterData(
     else if (filterTypeColumn === 'date') {
         switch (filterType) {
             case 'equals':
-                return source.filter(x => 
+                return source.filter(x =>
                     normalizeDate(x[filterColumnEn]).getTime() === normalizeDate(filterValues[0]).getTime()
                 );
             case 'notEquals':
-                return source.filter(x => 
+                return source.filter(x =>
                     normalizeDate(x[filterColumnEn]).getTime() !== normalizeDate(filterValues[0]).getTime()
                 );
             case 'greater':
-                return source.filter(x => 
+                return source.filter(x =>
                     normalizeDate(x[filterColumnEn]).getTime() > normalizeDate(filterValues[0]).getTime()
                 );
             case 'lessOrEqual':
-                return source.filter(x => 
+                return source.filter(x =>
                     normalizeDate(x[filterColumnEn]).getTime() <= normalizeDate(filterValues[0]).getTime()
                 );
             case 'inRange':
@@ -291,14 +363,158 @@ export function applyAllFilters(filters: FilterConfig[], sourceData: any[]) {
 }
 
 export function removeFilter(
-    columnToRemove: string,
+    columnToRemove: FilterConfig,
     filterConfig: FilterConfig[],
     setFilterConfig: React.Dispatch<React.SetStateAction<FilterConfig[]>>,
     originalSource: any[],
     setSource: React.Dispatch<React.SetStateAction<any[]>>
 ) {
-    const newFilterConfig = filterConfig.filter(y => y.column !== columnToRemove);
+    const newFilterConfig = filterConfig.filter(y => y != columnToRemove);
     setFilterConfig(newFilterConfig);
     const newSource = applyAllFilters(newFilterConfig, originalSource);
     setSource(newSource);
+}
+
+//
+export function getValueFK(nameTableTo: string, nameTableFrom: string, id: number, sourceTableTo: any[]) {
+    let row = sourceTableTo.find(x => x.id == id);
+    let data_fks = fk.find(x => x.nameTable == nameTableFrom);
+    let tablesPK = data_fks?.tablesPK;
+    if (tablesPK && data_fks) {
+        let ind = tablesPK.findIndex(y => y == nameTableTo);
+        let val = data_fks.visCols?.[ind]?.map(y => row[y]);
+        return val?.join(' ');
+    }
+    return 'ошибка';
+}
+
+// deleting rows
+export async function deleteRows(
+    nameTable: string,
+    editingSource: any[],
+    setEditingSource: React.Dispatch<React.SetStateAction<any[]>>,
+    selectingRows: SelectingRows,
+    setSelectingRows: React.Dispatch<React.SetStateAction<SelectingRows>>,
+    editingRows: EditingRows,
+    setEditingRows: React.Dispatch<React.SetStateAction<EditingRows>>,
+    originalSource: any[],
+    setOriginalSource: React.Dispatch<React.SetStateAction<any[]>>,
+    setSource: React.Dispatch<React.SetStateAction<any[]>>
+) {
+    const rowsToDelete = Object.keys(selectingRows).filter(x => selectingRows[x]);
+    if (rowsToDelete.length > 0) {
+        try {
+            await Promise.all(rowsToDelete.map(async (x) => {
+                await deleteRecordById(nameTable, parseInt(x));
+            }));
+
+            // Обновляем все состояния
+            const newEditingSource = editingSource.filter(y => !rowsToDelete.includes(y.id.toString()));
+            const newOriginalSource = originalSource.filter(y => !rowsToDelete.includes(y.id.toString()));
+            const newSelectingRows = { ...selectingRows };
+            const newEditingRows = { ...editingRows };
+            
+            // Удаляем выбранные строки из всех состояний
+            rowsToDelete.forEach(x => {
+                delete newSelectingRows[x];
+                delete newEditingRows[x];
+            });
+
+            // Обновляем все состояния
+            setEditingSource(newEditingSource);
+            setOriginalSource(newOriginalSource);
+            setSelectingRows(newSelectingRows);
+            setEditingRows(newEditingRows);
+            setSource(newOriginalSource); // Обновляем основной источник данных
+        } catch (error) {
+            console.error("Ошибка при удалении записей:", error);
+        }
+    }
+}
+
+// searching data
+export function search(
+    value: string,
+    setSearchValue: React.Dispatch<React.SetStateAction<string>>,
+    source: any[],
+    tableState: TableState,
+    setSearchedRows: React.Dispatch<React.SetStateAction<SearchedSource>>,
+    tablesPK: { nameTable: string, source: any[] }[],
+    isCaseSensitiveSearch: boolean
+) {
+    setSearchValue(value);
+    if (value.length > 0) {
+        source.map(x => {
+            let c = 0;
+            Object.keys(x).map((y: any, i) => {
+                if (i != 0) {
+                    if (fk.find(z => z.nameTable == tableState.name)?.fkS.includes(y)) {
+                        let v = getValueFK(fk.find(z => z.nameTable == tableState.name)?.tablesPK[fk.find(z => z.nameTable == tableState.name)?.fkS.indexOf(y) || 0] || '', tableState.name, x[y], tablesPK.find(z => z.nameTable == fk.find(z => z.nameTable == tableState.name)?.tablesPK[fk.find(z => z.nameTable == tableState.name)?.fkS.indexOf(y) || 0])?.source || []);
+                        if (isCaseSensitiveSearch) {
+                            if (v.toString().includes(value)) {
+                                c++;
+                            }
+                        } else {
+                            if (v.toString().toLowerCase().includes(value.toLowerCase())) {
+                                c++;
+                            }
+                        }
+                    }
+                    if (normalizeDate(x[y]).toLocaleDateString().toString().toLowerCase().includes(value.toLowerCase()) && new Date(x[y]).toString() != 'Invalid Date') {
+                        c++;
+                    }
+                }
+            })
+            Object.values(x).map((y: any, i) => {
+                if (i != 0) {
+                    if (isCaseSensitiveSearch) {
+                        if (y.toString().includes(value)) {
+                            c++;
+                        }
+                    } else {
+                        if (y.toString().toLowerCase().includes(value.toLowerCase())) {
+                            c++;
+                        }
+                    }
+                }
+            })
+            if (c > 0) {
+                setSearchedRows(prev => ({ ...prev, [x['id']]: true }));
+            } else {
+                setSearchedRows(prev => ({ ...prev, [x['id']]: false }));
+            }
+        });
+    } else {
+        setSearchedRows({});
+    }
+}
+
+export function getSubordinateTable(nameTable: string, id: number, states: Tables, tableState: TableState, setStates: (a: Tables) => void, changeCurrentTable: (nameTable: string) => void) {
+    let state = states[nameTable];
+    let sbT = subordinateTables.find(x => x.nameTable == tableState.name);
+    if (sbT) {
+        let ind = sbT.subordinateTables.indexOf(nameTable);
+        let howToTable = sbT.howToTable;
+        let isHaveFK = sbT.isHaveFK[ind];
+        if (!isHaveFK && howToTable) {
+            let nameHowToTable = howToTable[ind];
+            let OrigSource = states[nameHowToTable].originalSource;
+            let filteredSource = OrigSource.filter(x => x[sbT.idToFK] == id);
+            let idToOsn = sbT.idToOsn;
+            if (idToOsn) {
+                let idToOsnName = idToOsn[ind];
+                let ids = filteredSource.map((x: any) => x[idToOsnName]);
+                let filteredSourceForTable = state.originalSource.filter((x: any) => ids.includes(x['id']));
+                setStates({ ...states, [nameTable]: { 
+                    ...state,
+                    originalSource: filteredSourceForTable } });
+                changeCurrentTable(nameTable);
+            }
+        } else if (isHaveFK) {
+            let OrigSource = states[nameTable].originalSource;
+            let filteredSource = OrigSource.filter(x => x[sbT.idToFK] == id);
+            setStates({ ...states, [nameTable]: { ...state, originalSource: filteredSource } });
+            changeCurrentTable(nameTable);
+        }
+    }
 }

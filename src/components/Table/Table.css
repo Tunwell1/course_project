@@ -12,6 +12,12 @@
     margin-top: 10px;
 }
 
+.space-table-content {
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+}
+
 .filter-config {
     display: flex;
     align-items: center;
@@ -21,6 +27,49 @@
     border-radius: 4px;
 }
 
+/* Стили для ячеек */
+th, td {
+    border: 1px solid #ddd;
+    padding: 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+th {
+    text-align: center;
+    background-color: #f8f8f8;
+    position: sticky;
+    top: 0;
+}
+
+tfoot td {
+    position: sticky;
+    bottom: 0;
+    background-color: #f8f8f8;
+}
+
+.inTH {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    justify-content: center;
+}
+
+.inTD {
+    display: flex;
+    gap: 4px;
+}
+
+.inTD > input {
+    width: 100%;
+}
+
+.edit-column {
+    width: 50px;
+    text-align: center;
+}
+
 table {
     width: 100%;
     border-collapse: collapse;
@@ -28,17 +77,292 @@ table {
 
 th, td {
     border: 1px solid #ddd;
-    padding: 4px 8px;
-    text-align: left;
+    padding: 6px;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+th {
+    text-align: center;
+    background-color: #f8f8f8;
 }
 
 .inTH {
     display: flex;
     gap: 4px;
     align-items: center;
+    justify-content: center;
+}
+
+input[type="checkbox"] {
+    width: 15px;
+    height: 15px;
 }
 
 .inTD {
     display: flex;
     gap: 4px;
-} 
+}
+
+.inTD > input {
+    width: 100%;
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 16px;
+}
+
+.edit-column {
+    width: fit-content;
+    padding: 5px;
+}
+
+tr {
+    transition: background-color 0.3s ease;
+}
+
+tr.searched {
+    background-color: rgba(47, 0, 255, 0.2);
+}
+
+/* Минималистичная анимация для кнопки редактирования */
+.img-button {
+    width: 34px;
+    padding: 4px;
+    border: none;
+    background-color: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 5px;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.center-img {
+    margin: auto;
+}
+
+.img-button > img {
+    width: 100%;
+    height: 100%;
+    transition: transform 0.3s ease;
+}
+
+/* Эффект наведения */
+.img-button:hover {
+    background-color: rgba(100, 180, 255, 0.1);
+    box-shadow: 0 0 5px rgba(100, 180, 255, 0.3);
+}
+
+/* Эффект нажатия */
+.img-button:active {
+    background-color: rgba(100, 180, 255, 0.2);
+    transform: scale(0.95);
+}
+
+/* Стили для режима сохранения */
+.img-button.save-mode {
+    background-color: rgba(100, 180, 255, 0.15);
+}
+
+.whitebg-button {
+    background-color: white;
+}
+
+/* Пульсация для режима сохранения */
+@keyframes gentle-pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(100, 180, 255, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 5px rgba(100, 180, 255, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(100, 180, 255, 0);
+    }
+}
+
+.img-button.save-mode {
+    animation: gentle-pulse 2s infinite;
+}
+
+.img-button.save-mode > img {
+    filter: brightness(1.1) drop-shadow(0 0 2px rgba(100, 180, 255, 0.5));
+}
+
+.inTD-select {
+    display: flex;
+    gap: 5px;
+    justify-content: space-between;
+}
+
+.inTD-select-button {
+    padding: 4px 6px;
+    border: none;
+    border-radius: 6px;
+    background-color: white;
+    color: #2c3e50;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 16px;
+    font-family: 'Segoe UI', sans-serif;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    text-overflow: ellipsis;
+    overflow: hidden;
+    max-width: 150px;
+    width: 100%;
+}
+
+.inTD-select-button:hover {
+    background-color: #e3f2fd;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+    transform: translateY(-1px);
+}
+
+.span-value {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: block;
+    margin: auto 0px;
+}
+
+.right {
+    margin-left: auto;
+}
+
+select {
+    padding: 4px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 16px;
+    font-family: 'Segoe UI', sans-serif;
+    width: 100%;
+    background-color: white;
+    color: #2c3e50;
+    cursor: pointer;
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+select:focus {
+    border-color: #4834d4;
+    box-shadow: 0 0 0 3px rgba(72, 52, 212, 0.2);
+}
+
+option {
+    color: #2c3e50;
+    font-weight: 500;
+    padding: 10px;
+    line-height: 1.4;
+    font-size: 16px;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+.block-for-search {
+    display: flex;
+    gap: 10px;
+    justify-content: space-between;
+}
+
+.block-for-search > button {
+    padding: 4px 6px;
+    border-radius: 4px;
+    border: 1px solid #e0e0e0;
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 16px;
+}
+
+.block-for-search > button:hover {
+    background-color: #e0e0e0;
+}
+
+.block-for-search > button:active {
+    background-color: #e0e0e0;
+}
+
+.block-for-search > input {
+    padding: 4px;
+    border-radius: 4px;
+    border: 1px solid #e0e0e0;
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 16px;
+    width: 75%;
+}
+
+.checkbox-for-search {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+}
+
+.span-for-search {
+    font-size: 16px;
+    font-family: 'Segoe UI', sans-serif;
+    color: #333;
+}
+
+.dop-filter-config {
+    display: flex;
+    gap: 10px;
+}
+
+.dop-filter-config > span {
+    width: fit-content;
+    margin: auto 0px;
+    font-size: 16px;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+.dop-filter-config > select {
+    width: fit-content;
+}
+
+.space-under-table {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.to-button {
+    padding: 4px 8px;
+    border: none;
+    background-color: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 5px;
+    transition: all 0.2s ease;
+    position: relative;
+    gap: 5px;
+    min-width: fit-content;
+}
+
+.to-button:hover {
+    background-color: rgba(100, 180, 255, 0.1);
+    box-shadow: 0 0 5px rgba(100, 180, 255, 0.3);
+}
+
+.to-button:active {
+    background-color: rgba(100, 180, 255, 0.2);
+    transform: scale(0.95);
+}
+
+.to-button img {
+    width: 16px;
+    height: 16px;
+    transition: transform 0.3s ease;
+}
+
+.to-button span {
+    font-size: 16px;
+    color: #333;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}

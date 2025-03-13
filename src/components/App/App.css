@@ -27,7 +27,7 @@
 }
 
 .table-space {
-  width: 81%;
+  width: 85%;
   height: 100%;
 }
 
@@ -41,5 +41,4 @@
   background-color: white;
   padding: 8px;
   gap: 8px;
-  justify-content: space-around;
 }

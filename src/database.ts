@@ -20,7 +20,7 @@ export async function getColumnNames(tableName: string): Promise<string[] | null
 }
 
 export async function getTable(nameTable: string) {
-    const { data, error } = await supabase.from(nameTable).select("*");
+    const { data, error } = await supabase.from(nameTable).select("*").order('id', { ascending: true });
     if (error) {
         console.error('Ошибка при получении данных из таблицы ' + nameTable + ": " + error);
         return null;
@@ -67,4 +67,20 @@ export async function getColumnTypes(tableName: string): Promise<{ column_name: 
         console.error('Ошибка при получении типов столбцов:', error);
         return null;
     }
+}
+
+export async function getColumnById(tableName: string, columnName: string, id: number): Promise<number> {
+    const { data, error } = await supabase.from(tableName).select(columnName).eq('id', id);
+    if (error) {
+        throw error;
+    }
+    return data[0][columnName as keyof typeof data[0]] as number;
+}
+
+export async function getRowById(tableName: string, id: number){
+    const {data, error} = await supabase.from(tableName).select('*').eq('id',id);
+    if (error){
+        console.error('Ошибка при получении записи таблицы ',tableName,' с id ',id);
+    }
+    return data;
 }
